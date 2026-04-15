@@ -1,6 +1,3 @@
-// ⚠️ Замените на URL вашего задеплоенного Google Apps Script Web App
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbygObWcVxX9ZtlnJB1k_A5QTHkTkEbh4Z-plDg7jnYLQ71i15cVHHABakdFvoWeUI1T/exec';
-
 var PASS_SCORE   = 8;   // минимум правильных из 10
 var TOTAL_Q      = 10;
 
@@ -13,11 +10,6 @@ var answers       = [];
 // ─── Точка входа ───────────────────────────────────────────────────────────
 
 function init() {
-  var today = new Date().toISOString().slice(0, 10); // "2026-04-16"
-  var done  = localStorage.getItem('skzQuizDate');
-
-  if (done === today) return; // уже сдан сегодня
-
   captureLogin();
   showOverlay();
   loadQuestions();
@@ -71,19 +63,14 @@ function getCounter() { return document.getElementById('skz-counter');      }
 // ─── Загрузка вопросов ──────────────────────────────────────────────────────
 
 function loadQuestions() {
-  fetch(APPS_SCRIPT_URL + '?action=questions')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (!data.questions || !data.questions.length) {
-        showError('Не удалось загрузить вопросы. Обратитесь к руководителю.');
-        return;
-      }
-      questions = data.questions;
+  chrome.runtime.sendMessage({ type: 'getQuestions' }, function(resp) {
+    if (resp && resp.ok && resp.data.questions && resp.data.questions.length) {
+      questions = resp.data.questions;
       renderQuestion(0);
-    })
-    .catch(function() {
-      showError('Нет соединения с сервером. Обратитесь к руководителю.');
-    });
+    } else {
+      showError('Не удалось загрузить вопросы. Обратитесь к руководителю.');
+    }
+  });
 }
 
 // ─── Отображение вопроса ────────────────────────────────────────────────────
@@ -173,13 +160,7 @@ function submitResult() {
     answers: answers
   };
 
-  fetch(APPS_SCRIPT_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(payload)
-  })
-  .catch(function() { /* результат не записался, но тест показываем */ })
-  .finally(function() {
+  chrome.runtime.sendMessage({ type: 'saveResult', payload: payload }, function() {
     showResult(score >= PASS_SCORE);
   });
 }
@@ -209,9 +190,6 @@ function showResult(passed) {
   ].join('');
 
   if (passed) {
-    var today = new Date().toISOString().slice(0, 10);
-    localStorage.setItem('skzQuizDate', today);
-
     // Убираем оверлей через 2 секунды
     setTimeout(function() {
       var overlay = document.getElementById('skz-overlay');
