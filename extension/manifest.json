@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Skorozvon Quiz",
+  "version": "1.0",
+  "description": "Ежедневное тестирование сотрудников перед входом в Skorozvon",
+
+  "permissions": ["storage"],
+
+  "host_permissions": [
+    "https://app.skorozvon.ru/*",
+    "https://script.google.com/*",
+    "https://script.googleusercontent.com/*"
+  ],
+
+  "content_scripts": [
+    {
+      "matches": ["https://app.skorozvon.ru/*"],
+      "js": ["content.js"],
+      "css": ["quiz.css"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "icons": {
+    "48": "icon48.png"
+  }
+}
